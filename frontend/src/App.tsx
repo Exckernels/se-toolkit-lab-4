@@ -7,17 +7,18 @@ interface Item {
   id: number
   type: string
   title: string
+  description?: string // ✅ added
   created_at: string
 }
 
 function App() {
-  const [token, setToken] = useState(
-    () => localStorage.getItem(STORAGE_KEY) ?? '',
-  )
+  const [token, setToken] = useState(() => localStorage.getItem(STORAGE_KEY) ?? '')
   const [draft, setDraft] = useState('')
   const [items, setItems] = useState<Item[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+
+  const [typeFilter, setTypeFilter] = useState('All')
 
   useEffect(() => {
     if (!token) return
@@ -25,7 +26,7 @@ function App() {
     setLoading(true)
     setError(null)
 
-    fetch('/items', {
+    fetch('/items/', {
       headers: { Authorization: `Bearer ${token}` },
     })
       .then((res) => {
@@ -56,7 +57,14 @@ function App() {
     setDraft('')
     setItems([])
     setError(null)
+    setTypeFilter('All')
   }
+
+  const typeOptions = Array.from(new Set(items.map((i) => i.type))).sort()
+  const allTypeOptions = ['All', ...typeOptions]
+
+  const filteredItems =
+    typeFilter === 'All' ? items : items.filter((item) => item.type === typeFilter)
 
   if (!token) {
     return (
@@ -87,26 +95,47 @@ function App() {
       {error && <p>Error: {error}</p>}
 
       {!loading && !error && (
-        <table>
-          <thead>
-            <tr>
-              <th>ID</th>
-              <th>Type</th>
-              <th>Title</th>
-              <th>Created at</th>
-            </tr>
-          </thead>
-          <tbody>
-            {items.map((item) => (
-              <tr key={item.id}>
-                <td>{item.id}</td>
-                <td>{item.type}</td>
-                <td>{item.title}</td>
-                <td>{item.created_at}</td>
+        <>
+          <div style={{ marginBottom: 12 }}>
+            <label htmlFor="typeFilter" style={{ marginRight: 8 }}>
+              Type:
+            </label>
+            <select
+              id="typeFilter"
+              value={typeFilter}
+              onChange={(e) => setTypeFilter(e.target.value)}
+            >
+              {allTypeOptions.map((t) => (
+                <option key={t} value={t}>
+                  {t}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <table>
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Type</th>
+                <th>Title</th>
+                <th>Description</th> {/* ✅ added */}
+                <th>Created at</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {filteredItems.map((item) => (
+                <tr key={item.id}>
+                  <td>{item.id}</td>
+                  <td>{item.type}</td>
+                  <td>{item.title}</td>
+                  <td>{item.description ?? ''}</td> {/* ✅ added */}
+                  <td>{item.created_at}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </>
       )}
     </div>
   )
